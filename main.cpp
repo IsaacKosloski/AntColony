@@ -124,9 +124,17 @@ int randomPathChoice(double pxy[][NUM_OF_SPOTS], int currentSpot, int numOfPossi
 
     srand(time(0));
 
-    for (auto n : numOfPossibleSpots)
+    for (auto n = 0; n < NUM_OF_SPOTS; n++)
         sum += pxy[currentSpot][n];
 
+    float nextProbabilitySpot = static_cast<float> (rand()) / (static_cast<float> (RAND_MAX / sum));
+    for (auto n = 0; n < NUM_OF_SPOTS; n++)
+    {
+        accum += (pxy[currentSpot][n]/sum);
+        if (nextProbabilitySpot < accum)
+            return n;
+    }
+    return NUM_OF_SPOTS - 1;
 }
 
 /*gets data values*/
