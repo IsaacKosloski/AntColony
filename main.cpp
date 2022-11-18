@@ -1,5 +1,11 @@
 #include "Ant.h"
-#define NUM_OF_ITERACTIONS 100
+#define NUM_OF_ITERACTIONS 2
+
+struct spot
+{
+    int distance;
+    bool eligible = true;
+};
 
 
 int main()//int argc, char *argv[])
@@ -10,17 +16,18 @@ int main()//int argc, char *argv[])
     int pathProbabilityChoice(double tau, double eta, double sigma, double alpha, double beta);
     double euclidianDistance(double xy[][2]);
     void dataScanner(string file);
+    int randomPathChoice(double pxy[][NUM_OF_SPOTS], int currentSpot/*, int numOfPossibleSpots*/);
 
     /* definning the tables and lists of all values*/
     int localCurrentCondition = 0, antCurrentPosition, globalCurrentCondition = 0;
     int spots[NUM_OF_SPOTS] = {0, 1, 2, 3, 4}; //spots just for test only
     double spotsCoordinate[2][2];
     //distance transitions for test only
-    int spotsDistance[NUM_OF_SPOTS][NUM_OF_SPOTS] = {{0, 22, 50, 48, 29},
-                                                {22, 0, 30, 34, 32},
-                                                {50, 30, 0, 22, 23},
-                                                {48, 34, 22, 0, 35},
-                                                {29, 32, 23, 35, 0}};
+    spot spotsDistance[NUM_OF_SPOTS][NUM_OF_SPOTS] = {{0, false, 22, true, 50, true, 48, true,29, true},
+                                                {22, true, 0, false, 30, true, 34, true, 32, true},
+                                                {50, true, 30, true, 0,  false, 22, true, 23, true},
+                                                {48, true, 34, true, 22, true, 0, false,35, true},
+                                                {29, true, 32, true, 23, true, 35, true, 0, false}};
     //standard pheromones (eta)
     double spotsPheromone[NUM_OF_SPOTS][NUM_OF_SPOTS] = {{0.1, 0.1, 0.1, 0.1, 0.1},
                                                          {0.1, 0.1, 0.1, 0.1, 0.1},
@@ -43,7 +50,7 @@ int main()//int argc, char *argv[])
     //setting the spotsDistanceUnderOne value (tau)
     for (auto i: spots)
         for (auto j: spots)
-            i != j ? spotsDistanceUnderOne[i][j] = (1 / spotsDistance[i][j]) : spotsDistanceUnderOne[i][j] = 0;
+            (i != j and spotsDistance[i][j].eligible) ? spotsDistanceUnderOne[i][j] = (1 / spotsDistance[i][j].distance) : spotsDistanceUnderOne[i][j] = 0;
 
     //setting new ant and adding to the antsColony
     for (auto n: spots)
@@ -63,6 +70,7 @@ int main()//int argc, char *argv[])
     //global status to terminate the main algorithm and determinate the "iteraction t"
     while(globalCurrentCondition < NUM_OF_ITERACTIONS) // don´t know yet
     {
+        cout << "\nIteraction" << globalCurrentCondition << endl;
         //calculating generic values on iteraction t
         sigma = summationOfProducts(spotsDistanceUnderOne, spotsPheromone, globalCurrentCondition);
         //generating the probability of each path be chosen
@@ -73,19 +81,34 @@ int main()//int argc, char *argv[])
         //using the whole colony for each iteraction
         for (antsIterator = antsColony.begin(); antsIterator != antsColony.end(); antsIterator++)
         {
+            cout << "\nAnt " << antsIterator->getAntID() << ":\n Path: " << antsIterator->memory[0] << " - ";
             //doing for each ant the whole path
-            while (localCurrentCondition != NUM_OF_SPOTS)
-            {
+            //while (localCurrentCondition != NUM_OF_SPOTS)
+            //{
                 //doing for each path
                 for (auto n: spots)
                 {
                     //getting the current position of the current ant
-                    antCurrentPosition = antsIterator->memory[localCurrentCondition];
-
-
-
+                    antCurrentPosition = antsIterator->memory[n];
+                    //updating the ant memory
+                    antsIterator->memory[n+1] = randomPathChoice(probabiltyTransition, antCurrentPosition);
+                    //updating the path probability transition by desable the previous path
+                    spotsDistance[antsIterator->memory[n+1]][antsIterator->memory[n]].eligible = false;
+                    if (n != NUM_OF_SPOTS)
+                    {
+                        //setting the new spotsDistanceUnderOne value (tau) as 0
+                        spotsDistanceUnderOne[antsIterator->memory[n + 1]][antsIterator->memory[n]] = 0;
+                        //calculating new sigma value
+                        sigma = summationOfProducts(spotsDistanceUnderOne, spotsPheromone, globalCurrentCondition);
+                        //fitting the probability of each path be chosen
+                        for (auto m: spots)
+                            probabiltyTransition[antsIterator->memory[n+1]][m] = pathProbabilityChoice(spotsDistanceUnderOne[antsIterator->memory[n+1]][m], spotsPheromone[antsIterator->memory[n+1]][m],
+                                                                                   sigma, influenceOfDistance, influenceOfPheromone);
+                    }
+                    cout << antsIterator->memory[n+1] << " - ";
                 }
-            }
+            //}
+
         }
         globalCurrentCondition++;
     }
@@ -118,7 +141,7 @@ int pathProbabilityChoice(double tau, double eta, double sigma, double alpha, do
 }
 
 /*simulates natural path choice*/
-int randomPathChoice(double pxy[][NUM_OF_SPOTS], int currentSpot, int numOfPossibleSpots)
+int randomPathChoice(double pxy[][NUM_OF_SPOTS], int currentSpot)//, int numOfPossibleSpots)
 {
     double sum = 0.0, accum = 0.0;
 

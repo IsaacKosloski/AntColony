@@ -15,7 +15,7 @@ class Ant
 {
 public:
     int ID;
-    int memory[NUM_OF_SPOTS]; //each array position is a spot index
+    int memory[NUM_OF_SPOTS+1]; //each array position is a spot index
     int antPosition[2]; //Position is given by (x,y) coordinates
     double pheromone; //feromônio da formiga
 
